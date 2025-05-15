@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Gesture Recognition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a365d, #2a5298);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #webcam {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 3px solid #fff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            transform: scaleX(-1);
+        }
+
+        #result {
+            font-size: 1.5rem;
+            color: #2d3748;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            background: #e2e8f0;
+            border-radius: 50px;
+            display: inline-block;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            min-width: 300px;
+        }
+
+        .status-bar {
+            height: 4px;
+            background: #cbd5e0;
+            border-radius: 2px;
+            margin: 1rem auto;
+            width: 80%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar::after {
+            content: '';
+            position: absolute;
+            left: -50%;
+            width: 40%;
+            height: 100%;
+            background: #4299e1;
+            animation: loading 1.5s infinite linear;
+        }
+
+        @keyframes loading {
+            0% { left: -50%; }
+            100% { left: 150%; }
+        }
+
+        footer {
+            margin-top: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            #result {
+                font-size: 1.2rem;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋 Gesture Recognition System</h1>
+        <video id="webcam" width="640" height="480" autoplay></video>
+        <div class="status-bar"></div>
+        <div id="result"></div>
+    </div>
+
+    <footer>
+        Real-Time AI Processing System | Powered by TensorFlow.js
+    </footer>
+
+    <!-- Script originale mantenuto intatto -->
+    <script>
+        const video = document.getElementById('webcam');
+        const resultDiv = document.getElementById('result');
+        
+        let isPredicting = false;
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+                startPrediction();
+            })
+            .catch(err => {
+                resultDiv.innerHTML = "Errore webcam: " + err;
+            });
+
+        async function startPrediction() {
+            isPredicting = true;
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+
+            while (isPredicting) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+                const formData = new FormData();
+                formData.append('image', blob, 'frame.jpg');
+
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    resultDiv.innerHTML = `Gesto: ${result.gesture_name}`;
+                } catch (error) {
+                    resultDiv.innerHTML = "Errore: " + error;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 20));
+            }
+        }
+
+        function stopPrediction() {
+            isPredicting = false;
+        }
+    </script>
+</body>
+</html>
